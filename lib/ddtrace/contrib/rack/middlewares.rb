@@ -74,7 +74,7 @@ module Datadog
           # the result for this request; `resource` and `tags` are expected to
           # be set in another level but if they're missing, reasonable defaults
           # are used.
-          request_span.resource = "#{env['REQUEST_METHOD']} #{status}".strip unless request_span.resource
+          request_span.resource ||= resource_name_for(env, status)
           if request_span.get_tag(Datadog::Ext::HTTP::METHOD).nil?
             request_span.set_tag(Datadog::Ext::HTTP::METHOD, env['REQUEST_METHOD'])
           end
@@ -99,6 +99,12 @@ module Datadog
           # ensures we clean thread-local variables on each HTTP request avoiding
           # memory leaks.
           tracer.provider.context = Datadog::Context.new
+        end
+
+        def resource_name_for(env, status)
+          return env['LAST_MIDDLEWARE_HIT'] if Datadog.configuration[:rack][:experimental_resource_name]
+
+          "#{env['REQUEST_METHOD']} #{status}".strip
         end
       end
     end
